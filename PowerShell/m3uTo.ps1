@@ -68,14 +68,9 @@ Do {
     }until($p_Alias -ne "") #<-- A�adir expresi�n regular
 
 Do { 
-     switch ($p_OutFormart) {
-      'Bouque' {
-            $p_SplitFile = Read-Host Prompt 'Split file by "group-title"? (Y/N)'
-       }
-       'Fresatv8' {
-            $p_SplitFile = 'N'
-       } 
-     }
+ 
+    $p_SplitFile = Read-Host Prompt 'Split file by "group-title"? (Y/N)'
+       
     }until($p_SplitFile -eq "Y" -or $p_SplitFile -eq "N")
 
 $p_FileName = PickUpFile
