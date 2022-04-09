@@ -1,2 +1,3 @@
 # m3uTo
-Transform m3u format to any format
+Transform m3u format to Bouquets and FreeSat V8
+
