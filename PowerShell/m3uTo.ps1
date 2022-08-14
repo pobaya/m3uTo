@@ -9,7 +9,7 @@ function GetTagValue([string]$iStr, [string]$iTag) {
     
      $lv_Init  = $iStr.IndexOf($iTag) + $iTag.length + 2
      $lv_Last  = $iStr.IndexOf('"', $lv_Init)
-     $lv_return = $iStr.Substring($lv_Init ,$lv_Last - $lv_Init)
+     $lv_return = $iStr.Substring($lv_Init ,$lv_Last - $lv_Init) -replace '(\W|_)'
 
      return $lv_return
 
@@ -56,24 +56,18 @@ function get_format( ) {
 $p_OutFormart = get_Format
 
 Do { 
-     switch ($p_OutFormart) {
-      'Bouque' {
-         $p_Alias = Read-Host Prompt 'Alias Name? userbouquet.<Alias>.tv'
-       }
-       'Fresatv8' {
-         $p_Alias = Read-Host Prompt 'Alias Name?'          
-       } 
-           
-     }
+    $p_Alias = Read-Host Prompt 'Alias Name? userbouquet.<Alias>.tv'   
+
     }until($p_Alias -ne "") #<-- A�adir expresi�n regular
 
 Do { 
- 
     $p_SplitFile = Read-Host Prompt 'Split file by "group-title"? (Y/N)'
-       
+
     }until($p_SplitFile -eq "Y" -or $p_SplitFile -eq "N")
 
+
 $p_FileName = PickUpFile
+
 
 ##Start
 $gv_CurrentChannel=0
@@ -91,7 +85,7 @@ foreach ( $item_m3u in $gv_File_m3u ){
        if ( $p_SplitFile -eq 'Y' ) {
            # Pick-up Group         
            $gv_Group = GetTagValue $item_m3u "group-title"
-           $gv_Group = $p_alias + "_" + $gv_Group
+           $gv_Group = $p_alias + $gv_Group
         } else {
            $gv_Group = $p_alias  
         }
@@ -100,60 +94,40 @@ foreach ( $item_m3u in $gv_File_m3u ){
           #New Directory
            New-Item  $p_alias -ItemType Directory
          }        
-       
-        # Pick-up channel        
-        $gv_Canal = GetTagValue $item_m3u "tvg-name"     
         
-        switch ($p_OutFormart) {
-          'Bouque' {
-                # File bouquets
-                $gv_bouquesTv = $p_alias + "\bouquets.tv"
-                if ( !( Test-Path $gv_bouquesTv ) ) {    
-                 $gv_Name = "#NAME User - bouquets (TV)"
-                 Add-Content -Path $gv_bouquesTv -Value $gv_Name
-                }
-
-                # File Userbouquet     
-                $gv_out_File = $p_alias + "\userbouquet." + $gv_Group + ".tv"
-                if ( !( Test-Path $gv_out_File ) ) {    
-                 #New File
-                 $gv_Count = 1
-                 $gv_Name = "#Name " + $gv_Group  
-                 Add-Content -Path $gv_out_File -Value $gv_Name
-         
-                 # Add File to bouquets
-                 $gv_Service = '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.' + $gv_Group + '.tv" ORDER BY bouquet'
-                 Add-Content -Path $gv_bouquesTv -Value $gv_Service
-                }
-            
-          
-          }
-          'Fresatv8' {
-                $gv_out_File = $p_alias + "\iptvlist.txt"    
-          
-          }
+        # File bouquets
+        $gv_bouquesTv = $p_alias + "\bouquets.tv"
+        if ( !( Test-Path $gv_bouquesTv ) ) {    
+         $gv_Name = "#NAME User - bouquets (TV)"
+         Add-Content -Path $gv_bouquesTv -Value $gv_Name
         }
 
+        # File Userbouquet     
+        $gv_File_bouq = $p_alias + "\userbouquet." + $gv_Group + ".tv"
+        if ( !( Test-Path $gv_File_bouq ) ) {    
+         #New File
+         $gv_Count = 1
+         $gv_Name = "#Name " + $gv_Group  
+         Add-Content -Path $gv_File_bouq -Value $gv_Name
+         
+         # Add File to bouquets
+         $gv_Service = '#SERVICE 1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.' + $gv_Group + '.tv" ORDER BY bouquet'
+         Add-Content -Path $gv_bouquesTv -Value $gv_Service
+        }
+       
+        # Pick-up channel        
+        $gv_Canal = GetTagValue $item_m3u "tvg-name"
 
     } elseif ( $item_m3u.Contains("http://") ) { 
+        
+         # Add channel
+          $gv_Count++
+          $gv_CurrentChannel++
+          $gv_Service = "#SERVICE 4097:0:1:" + $gv_Count + ":0:0:0:0:0:0:" + $item_m3u.Replace(':','%3A')
+          $gv_Description = "#DESCRIPTION " + $gv_Canal
+          Add-Content -Path $gv_File_bouq -Value $gv_Service
+          Add-Content -Path $gv_File_bouq -Value $gv_Description
 
-         $gv_Count++
-         $gv_CurrentChannel++
-
-         switch ($p_OutFormart) {
-           'Bouque' {
-             # Add channel
-              $gv_Service = "#SERVICE 4097:0:1:" + $gv_Count + ":0:0:0:0:0:0:" + $item_m3u.Replace(':','%3A')
-              $gv_Description = "#DESCRIPTION " + $gv_Canal
-              Add-Content -Path $gv_out_File -Value $gv_Service
-              Add-Content -Path $gv_out_File -Value $gv_Description
-            }
-            'Fresatv8' {
-              # Add channel
-              $gv_Service = $gv_Canal + "," + $item_m3u
-              Add-Content -Path $gv_out_File -Value $gv_Service           
-            }
-         }  
           Write-Host  "Current Channel "  $gv_CurrentChannel  "/" $gv_TotalChannels
         } else { 
          #<-- Controlar el Error...
